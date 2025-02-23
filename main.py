@@ -4,7 +4,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 # Carregar os dados
-dados = pd.read_csv("lixo_mossoro.csv")
+dados = pd.read_csv("lixo_mossoro.csv", names=['data', 'area', 'quantidade_lixo', 'tipo_area'])
+
+# Adicionar colunas faltantes
+dados['chuva'] = 0
+dados['feriado'] = 0
 
 # Converter a data para dia da semana
 dados["data"] = pd.to_datetime(dados["data"], format="%d/%m/%Y")

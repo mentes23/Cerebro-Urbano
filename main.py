@@ -1,4 +1,26 @@
 import pandas as pd
+# Simulação interativa
+print("\nSimulação de previsões:")
+chuva = int(input("Haverá chuva na semana? (0 = não, 1 = sim): "))
+feriado = int(input("Haverá feriado na semana? (0 = não, 1 = sim): "))
+
+for area in areas:
+    tipo_area = dados.loc[dados["area"] == area, "tipo_area"].iloc[0]
+    tipo_area_num = le.transform([tipo_area])[0]
+    
+    futuro = pd.DataFrame({
+        "dia_semana": [0, 1, 2, 3, 4, 5, 6],
+        "tipo_area_num": [tipo_area_num] * 7,
+        "chuva": [chuva] * 7,
+        "feriado": [feriado] * 7
+    })
+    
+    previsoes = modelo.predict(futuro)
+    print(f"\nPrevisões para {area} (tipo: {tipo_area}):")
+    for i, previsao in enumerate(previsoes):
+        print(f"{dias_semana[i]}: {previsao:.0f} kg")
+        if previsao > 700:
+            print("Recomendação: Agendar coleta extra!")
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder

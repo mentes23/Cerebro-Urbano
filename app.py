@@ -9,7 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 st.title("Cérebro Urbano - Gestão Inteligente de Resíduos em Mossoró")
 
 # Carregar os dados
-dados = pd.read_csv("lixo_mossoro.csv")
+dados = pd.read_csv("lixo_mossoro.csv", names=['data', 'area', 'quantidade_lixo', 'tipo_area'])
 
 # Converter a data para dia da semana
 dados["data"] = pd.to_datetime(dados["data"], format="%d/%m/%Y")

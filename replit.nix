@@ -1,5 +1,6 @@
-{
-  pkgs = [
+
+{ pkgs }: {
+  deps = [
     pkgs.python39
     pkgs.python39Packages.streamlit
     pkgs.python39Packages.pandas
@@ -7,5 +8,4 @@
     pkgs.python39Packages.matplotlib
     pkgs.python39Packages.numpy
   ];
-}
 }

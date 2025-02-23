@@ -1,3 +1,4 @@
+
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -30,12 +31,9 @@ print("Acurácia no teste:", modelo.score(X_teste, y_teste))
 
 # Prever para os próximos 7 dias
 areas = ["Centro", "Nova Betânia"]
+dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+
 for area in areas:
-    dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
-    for dia, previsao in enumerate(previsoes):
-        print(f"{dias_semana[dia]}: {previsao:.0f} kg")
-        if previsao > 700:
-            print("Recomendação: Agendar coleta extra!")
     tipo_area_num = le.transform([dados.loc[dados["area"] == area, "tipo_area"].iloc[0]])[0]
     futuro = pd.DataFrame({
         "dia_semana": [0, 1, 2, 3, 4, 5, 6],  # Segunda a domingo
@@ -44,6 +42,6 @@ for area in areas:
     previsoes = modelo.predict(futuro)
     print(f"\nPrevisões para {area}:")
     for dia, previsao in enumerate(previsoes):
-        print(f"Dia {dia} (segunda a domingo): {previsao:.0f} kg")
+        print(f"{dias_semana[dia]}: {previsao:.0f} kg")
         if previsao > 700:
             print("Recomendação: Agendar coleta extra!")

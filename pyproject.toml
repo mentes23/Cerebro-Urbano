@@ -6,6 +6,9 @@ description = ""
 authors = ["Your Name <you@example.com>"]
 requires-python = ">=3.11"
 dependencies = [
+    "matplotlib==3.9.3",
+    "packages==0.1.1",
     "pandas==2.2.3",
-    "scikit-learn"
+    "scikit-learn",
+    "streamlit==1.40.2",
 ]

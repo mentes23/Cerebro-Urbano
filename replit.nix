@@ -1,4 +1,5 @@
- pkgs }: {
+
+{ pkgs }: {
   deps = [
     pkgs.python310
     pkgs.python310Packages.streamlit
@@ -7,4 +8,3 @@
     pkgs.python310Packages.matplotlib
   ];
 }
-

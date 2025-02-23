@@ -11,7 +11,7 @@ language = "python3"
 requiredFiles = [".replit", "replit.nix"]
 
 [deployment]
-run = ["sh", "-c", "streamlit run app.py --server.address=0.0.0.0 --server.port=8080"]
+run = ["sh", "-c", "streamlit run app.py --server.address=0.0.0.0 --server.port=8501 --server.headless=true"]
 deploymentTarget = "cloudrun"
 
 [workflows]
@@ -27,3 +27,4 @@ args = "streamlit run app.py --server.address=0.0.0.0"
 
 [[ports]]
 localPort = 8501
+externalPort = 80

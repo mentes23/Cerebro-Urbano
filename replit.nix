@@ -1,15 +1,11 @@
-{pkgs}: {
-  deps = [
-    pkgs.tk
-    pkgs.tcl
-    pkgs.qhull
-    pkgs.pkg-config
-    pkgs.gtk3
-    pkgs.gobject-introspection
-    pkgs.ghostscript
-    pkgs.freetype
-    pkgs.ffmpeg-full
-    pkgs.cairo
-    pkgs.glibcLocales
+{
+  pkgs = [
+    pkgs.python39
+    pkgs.python39Packages.streamlit
+    pkgs.python39Packages.pandas
+    pkgs.python39Packages.scikit-learn
+    pkgs.python39Packages.matplotlib
+    pkgs.python39Packages.numpy
   ];
+}
 }

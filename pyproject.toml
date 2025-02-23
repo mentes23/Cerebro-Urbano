@@ -20,4 +20,8 @@ dependencies = [
     "scikit-learn-extra==0.3.0",
     "scikit-learn-helper>=0.0.10",
     "sagemaker-scikit-learn-extension==2.5.0",
+    "pandas-gbq==0.24.0",
+    "pandasql==0.7.3",
+    "pandas-datareader==0.10.0",
+    "pandas-flavor==0.6.0",
 ]

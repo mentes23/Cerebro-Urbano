@@ -1,6 +1,6 @@
 
-{ pkgs }: {
-  deps = [
+{
+  pkgs = [
     pkgs.python310
     pkgs.python310Packages.streamlit
     pkgs.python310Packages.pandas

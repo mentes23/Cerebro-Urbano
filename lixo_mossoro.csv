@@ -1,6 +1,4 @@
-01/11/2023,Centro,800,comercial
-01/11/2023,Nova Betânia,300,residencial
-02/11/2023,Centro,750,comercial
-02/11/2023,Nova Betânia,350,residencial
-03/11/2023,Centro,820,comercial
-03/11/2023,Nova Betânia,310,residencial
+data,area,quantidade_lixo,tipo_area,chuva,feriado
+01/11/2023,Centro,800,comercial,0,0
+01/11/2023,Nova Betânia,300,residencial,0,0
+02/11/2023,Centro,650,comercial,0,0

@@ -31,6 +31,11 @@ print("Acurácia no teste:", modelo.score(X_teste, y_teste))
 # Prever para os próximos 7 dias
 areas = ["Centro", "Nova Betânia"]
 for area in areas:
+    dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+    for dia, previsao in enumerate(previsoes):
+        print(f"{dias_semana[dia]}: {previsao:.0f} kg")
+        if previsao > 700:
+            print("Recomendação: Agendar coleta extra!")
     tipo_area_num = le.transform([dados.loc[dados["area"] == area, "tipo_area"].iloc[0]])[0]
     futuro = pd.DataFrame({
         "dia_semana": [0, 1, 2, 3, 4, 5, 6],  # Segunda a domingo

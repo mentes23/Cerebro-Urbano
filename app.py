@@ -9,7 +9,14 @@ from sklearn.preprocessing import LabelEncoder
 st.title("Cérebro Urbano - Gestão Inteligente de Resíduos em Mossoró")
 
 # Carregar os dados
-dados = pd.read_csv("lixo_mossoro.csv", names=['data', 'area', 'quantidade_lixo', 'tipo_area'])
+dados = pd.read_csv("lixo_mossoro.csv")
+
+# Verificar se as colunas esperadas existem
+colunas_esperadas = ["dia_semana", "tipo_area", "chuva", "feriado", "quantidade_lixo"]
+for col in colunas_esperadas:
+    if col not in dados.columns and col != "dia_semana":  # dia_semana é criado depois
+        st.error(f"Erro: A coluna '{col}' não está presente no arquivo CSV!")
+        st.stop()
 
 # Converter a data para dia da semana
 dados["data"] = pd.to_datetime(dados["data"], format="%d/%m/%Y")
@@ -70,7 +77,7 @@ for i, previsao in enumerate(previsoes):
     if previsao > 700:
         st.warning(f"Recomendação: Agendar coleta extra para {dias_semana[i]}!")
 
-# Botão para exportar previsões (opcional)
+# Botão para exportar previsões
 if st.button("Exportar Previsões como CSV"):
     previsoes_df = pd.DataFrame({
         "Dia": dias_semana,

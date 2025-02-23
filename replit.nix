@@ -1,4 +1,3 @@
-
 {
   pkgs = [
     pkgs.python39
@@ -8,4 +7,5 @@
     pkgs.python39Packages.matplotlib
     pkgs.python39Packages.numpy
   ];
+}
 }

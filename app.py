@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import openai
+import sys
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -11,6 +12,13 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
+
+# Importar configurações do config.py
+try:
+    from config import OLLAMA_API_BASE, OLLAMA_API_KEY
+except ImportError:
+    st.error("Erro: O arquivo config.py não foi encontrado. Crie o arquivo config.py na pasta do projeto com as configurações do Ollama.")
+    sys.exit(1)
 
 # Configurar o estilo da página (tema escuro, cores do ChatGPT)
 st.set_page_config(page_title="Cérebro Urbano", layout="wide", initial_sidebar_state="expanded")
@@ -47,12 +55,56 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Configurar a API do Ollama com deepscaler (local)
-openai.api_key = "ollama"  # Não precisa de chave para Ollama local
-openai.api_base = "http://localhost:11434/v1"  # Porta padrão do Ollama
+# Configurar a API do Ollama com deepscaler usando config.py
+openai.api_key = OLLAMA_API_KEY
+openai.api_base = OLLAMA_API_BASE
+
+# Verificar se o Ollama está rodando
+def check_ollama_service():
+    try:
+        import requests
+        response = requests.get(f"{OLLAMA_API_BASE}/api/health", timeout=5)
+        return response.status_code == 200
+    except requests.exceptions.ConnectionError:
+        return False
+    except requests.exceptions.Timeout:
+        return False
+    except Exception as e:
+        print(f"Erro ao verificar Ollama: {str(e)}")
+        return False
+
+def get_port_process():
+    try:
+        import subprocess
+        result = subprocess.run(['netstat', '-aon'], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if ':11434' in line:
+                parts = line.split()
+                if len(parts) >= 5:
+                    return parts[-1]
+        return None
+    except:
+        return None
+
+if not check_ollama_service():
+    # Tenta encerrar automaticamente qualquer processo na porta 11434
+    import check_and_kill_process
+    pid = check_and_kill_process.kill_process_on_port(11434)
+    if pid:
+        st.info(f"Processo {pid} finalizado automaticamente para liberar a porta 11434.")
+        import time, subprocess
+        time.sleep(2)
+    # Tenta iniciar automaticamente o serviço usando a flag de porta
+    st.info("Tentando iniciar automaticamente o serviço Ollama na porta 11434...")
+    subprocess.Popen(["ollama", "serve", "--port", "11434"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    import time
+    time.sleep(5)
+    if not check_ollama_service():
+        st.error("O serviço Ollama não foi iniciado automaticamente. Verifique se está instalado e configurado corretamente ou inicie manualmente executando 'ollama serve --port 11434'.")
+        st.stop()
 
 # Título estilizado
-st.markdown("<h1 class='stHeader'>Cérebro Urbano - Gestão Inteligente de Resíduos em Mossoró</h1>", unsafe_allow_html=True)
+st.markdown("<h1 class='stHeader'>Cérebro Urbano - Assistente Inteligente para Resíduos em Mossoró</h1>", unsafe_allow_html=True)
 
 # Carregar os dados
 dados = pd.read_csv("lixo_mossoro.csv")
@@ -65,7 +117,17 @@ for col in colunas_esperadas:
         st.stop()
 
 # Preparar os dados
-dados["data"] = pd.to_datetime(dados["data"], format="%d/%m/%Y")
+if "data" not in dados.columns:
+    st.error("A coluna 'data' não foi encontrada no arquivo CSV!")
+    st.stop()
+
+try:
+    # Converte a coluna 'data' para datetime usando o formato desejado
+    dados["data"] = pd.to_datetime(dados["data"], format="%d/%m/%Y")
+except Exception as e:
+    st.error(f"Erro ao converter a coluna 'data': {e}. Verifique se as datas estão no formato DD/MM/AAAA no arquivo CSV.")
+    st.stop()
+
 dados["dia_semana"] = dados["data"].dt.dayofweek
 
 # Codificar o tipo de área
@@ -89,20 +151,76 @@ st.markdown(f"<h2 class='stSubheader'>Acurácia do modelo no teste: {acuracia:.2
 
 # Gráfico histórico de lixo por área (estilizado)
 st.markdown("<h2 class='stSubheader'>Histórico de Produção de Lixo por Área</h2>", unsafe_allow_html=True)
-fig, ax = plt.subplots(figsize=(10, 6))
-dados.groupby("area")["quantidade_lixo"].mean().plot(kind="bar", ax=ax, color=['#007bff', '#28a745', '#dc3545', '#ffc107'])
-ax.set_ylabel("Quantidade Média de Lixo (kg)", fontsize=12)
-ax.set_xlabel("Área", fontsize=12)
-ax.set_title("Produção Média de Lixo por Área em Mossoró", fontsize=14, pad=15)
-ax.grid(True, linestyle='--', alpha=0.7)
-st.pyplot(fig)
+col1, col2 = st.columns([1, 1])
+with col1:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    dados.groupby("area")["quantidade_lixo"].mean().plot(kind="bar", ax=ax, color=['#007bff', '#28a745', '#dc3545', '#ffc107'])
+    ax.set_ylabel("Quantidade Média de Lixo (kg)", fontsize=12)
+    ax.set_xlabel("Área", fontsize=12)
+    ax.set_title("Produção Média de Lixo por Área", fontsize=14, pad=15)
+    ax.grid(True, linestyle='--', alpha=0.7)
+    st.pyplot(fig)
 
-# Interface interativa com estilo ChatGPT
-st.markdown("<h2 class='stSubheader'>Previsões e Consultas Inteligentes</h2>", unsafe_allow_html=True)
+# Interface de chatbot completo
+st.markdown("<h2 class='stSubheader'>Chat com o Assistente Urbano</h2>", unsafe_allow_html=True)
 
-# Sidebar para opções
+# Inicializar o estado do chat
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "message_counter" not in st.session_state:
+    st.session_state.message_counter = 0
+
+# Exibir histórico de chat
+for msg in st.session_state.messages:
+    if "key_id" in msg:
+        key = f"msg_{msg['key_id']}"
+        if msg["role"] == "user":
+            message(msg["content"], is_user=True, avatar_style="adventurer", key=key)
+        else:
+            message(msg["content"], is_user=False, avatar_style="bottts", key=key)
+
+# Entrada de usuário para o chatbot
+user_input = st.text_input("Digite sua pergunta (ex.: 'Quais áreas precisam de mais coletas?')", key="chat_input")
+
+if user_input:
+    # Adicionar pergunta do usuário ao chat
+    st.session_state.message_counter += 1
+    st.session_state.messages.append({"role": "user", "content": user_input, "key_id": st.session_state.message_counter})
+
+    # Chamar a API do Ollama/deepscaler para processar a pergunta
+    try:
+        response = openai.ChatCompletion.create(
+            model="deepscaler",  # Use o modelo deepscaler 1.5B
+            messages=[
+                {"role": "system", "content": "Você é um assistente inteligente para gestão de resíduos em Mossoró. Use os dados fornecidos para responder perguntas complexas sobre produção de lixo, coletas, e melhorias na infraestrutura urbana. Mantenha respostas curtas e úteis. Se não souber, diga que não tem informações suficientes."},
+                *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages if "role" in m and "content" in m]
+            ],
+            max_tokens=150,
+            temperature=0.7
+        )
+
+        # Extrair a resposta do deepscaler
+        chat_response = response['choices'][0]['message']['content'].strip()
+
+        # Adicionar resposta ao chat
+        st.session_state.message_counter += 1
+        st.session_state.messages.append({"role": "assistant", "content": chat_response, "key_id": st.session_state.message_counter})
+
+    except Exception as e:
+        st.error(f"Erro ao processar a pergunta: {str(e)}. Verifique se o Ollama está rodando na porta 11435 (execute 'ollama serve --port 11435' em outro terminal) e que a porta está livre. Use 'netstat -aon | findstr :11434' para verificar e 'taskkill /F /PID <PID>' para liberar, se necessário.")
+
+    # Atualizar a exibição do chat
+    for msg in st.session_state.messages[-2:]:  # Mostrar apenas a última interação
+        if "key_id" in msg:
+            key = f"msg_{msg['key_id']}"
+            if msg["role"] == "user":
+                message(msg["content"], is_user=True, avatar_style="adventurer", key=key)
+            else:
+                message(msg["content"], is_user=False, avatar_style="bottts", key=key)
+
+# Sidebar para configurações de previsões
 with st.sidebar:
-    st.markdown("<h3 class='stSubheader'>Configurações</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 class='stSubheader'>Configurações de Previsões</h3>", unsafe_allow_html=True)
     area_selecionada = st.selectbox("Escolha uma área:", dados["area"].unique(), key="area_select")
     data_inicio = st.date_input("Data de início", value=pd.to_datetime("2025-03-01").date(), key="data_inicio")
     data_fim = st.date_input("Data de fim", value=pd.to_datetime("2025-03-14").date(), key="data_fim", min_value=data_inicio)
@@ -133,23 +251,19 @@ futuro = pd.DataFrame({
 previsoes = modelo.predict(futuro)
 
 # Mostrar previsões em formato de chat com chaves únicas
-if "message_counter" not in st.session_state:
-    st.session_state.message_counter = 0
+st.session_state.messages.append({"role": "assistant", "content": f"Previsões para {area_selecionada} ({tipo_area}) de {data_inicio} a {data_fim}:", "key_id": st.session_state.message_counter + 1})
+st.session_state.message_counter += 1
 
-st.session_state.messages = st.session_state.get("messages", [])
-st.session_state.messages.append({"role": "assistant", "content": f"Previsões para {area_selecionada} ({tipo_area}) de {data_inicio} a {data_fim}:"})
-
-# Contador para garantir chaves únicas
 for i, previsao in enumerate(previsoes):
-    st.session_state.message_counter += 1  # Incrementa o contador para cada mensagem
+    st.session_state.message_counter += 1
     dia = dias_semana[i]
     mensagem = f"{dia}: {previsao:.0f} kg"
     st.session_state.messages.append({"role": "assistant", "content": mensagem, "key_id": st.session_state.message_counter})
     if previsao > 700:
-        st.session_state.message_counter += 1  # Incrementa novamente para a recomendação
+        st.session_state.message_counter += 1
         st.session_state.messages.append({"role": "assistant", "content": f"Recomendação: Agendar coleta extra para {dia}!", "style": "warning", "key_id": st.session_state.message_counter})
 
-# Exibir as mensagens no estilo chat usando as chaves únicas
+# Exibir as mensagens de previsão no chat
 for msg in st.session_state.messages:
     if "key_id" in msg:
         key = f"msg_{msg['key_id']}"
@@ -158,50 +272,14 @@ for msg in st.session_state.messages:
         else:
             message(msg["content"], is_user=False, avatar_style="bottts", key=key)
 
-# Adicionar entrada de chat para consultas em linguagem natural
-st.markdown("<h2 class='stSubheader'>Faça uma Pergunta em Linguagem Natural</h2>", unsafe_allow_html=True)
-user_input = st.text_input("Digite sua pergunta (ex.: 'Quais áreas precisam de mais coletas?')", key="user_input")
-
-if user_input:
-    # Chamar a API do Ollama/deepscaler para processar a pergunta
-    response = openai.ChatCompletion.create(
-        model="deepscaler",  # Use o modelo deepscaler 1.5B
-        messages=[
-            {"role": "system", "content": "Você é um assistente inteligente para gestão de resíduos em Mossoró. Use os dados fornecidos para responder perguntas complexas sobre produção de lixo, coletas, e melhorias na infraestrutura urbana. Se não souber, diga que não tem informações suficientes."},
-            {"role": "user", "content": user_input}
-        ],
-        max_tokens=150,
-        temperature=0.7
-    )
-
-    # Extrair a resposta do deepscaler
-    chat_response = response['choices'][0]['message']['content'].strip()
-
-    # Adicionar a pergunta e resposta ao chat
-    if "message_counter" not in st.session_state:
-        st.session_state.message_counter = 0
-    st.session_state.message_counter += 1
-    st.session_state.messages.append({"role": "user", "content": user_input, "key_id": st.session_state.message_counter})
-    st.session_state.message_counter += 1
-    st.session_state.messages.append({"role": "assistant", "content": chat_response, "key_id": st.session_state.message_counter})
-
-    # Exibir a interação no chat
-    for msg in st.session_state.messages[-2:]:  # Mostrar apenas a última interação
-        if "key_id" in msg:
-            key = f"msg_{msg['key_id']}"
-            if msg["role"] == "user":
-                message(msg["content"], is_user=True, avatar_style="adventurer", key=key)
-            else:
-                message(msg["content"], is_user=False, avatar_style="bottts", key=key)
-
-# Botão para exportar previsões
-if st.button("Exportar Previsões como CSV", key="export_button"):
+# Botões de exportação na sidebar
+if st.sidebar.button("Exportar Previsões como CSV", key="export_button"):
     previsoes_df = pd.DataFrame({
         "Dia": dias_semana,
         "Quantidade (kg)": previsoes.round(0),
         "Coleta Extra": ["Sim" if p > 700 else "Não" for p in previsoes]
     })
-    st.download_button(
+    st.sidebar.download_button(
         label="Baixar CSV",
         data=previsoes_df.to_csv(index=False),
         file_name=f"previsoes_{area_selecionada}_{data_inicio}_{data_fim}.csv",
@@ -209,8 +287,7 @@ if st.button("Exportar Previsões como CSV", key="export_button"):
         key="download_button"
     )
 
-# Botão para exportar relatórios em PDF
-if st.button("Exportar Relatório em PDF", key="export_pdf_button"):
+if st.sidebar.button("Exportar Relatório em PDF", key="export_pdf_button"):
     pdf_buffer = io.BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
     elements = []
@@ -246,7 +323,7 @@ if st.button("Exportar Relatório em PDF", key="export_pdf_button"):
     # Gerar o PDF
     doc.build(elements)
     pdf_buffer.seek(0)
-    st.download_button(
+    st.sidebar.download_button(
         label="Baixar Relatório em PDF",
         data=pdf_buffer,
         file_name=f"relatorio_{area_selecionada}_{data_inicio}_{data_fim}.pdf",
